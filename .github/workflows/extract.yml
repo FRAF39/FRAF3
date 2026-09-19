@@ -6,6 +6,9 @@ on:
     paths:
       - "**/*.zip"
 
+permissions:
+  contents: write
+
 jobs:
   extract:
     runs-on: ubuntu-latest
@@ -13,34 +16,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Find and extract ZIP files
         shell: bash
         run: |
           set -e
 
-          echo "Searching for ZIP files..."
-
           find . -type f -iname "*.zip" -print0 | while IFS= read -r -d '' zipfile; do
-            filename=$(basename "$zipfile")
             folder="${zipfile%.zip}"
 
             echo "Extracting: $zipfile"
-            echo "Destination: $folder"
-
             mkdir -p "$folder"
             unzip -o "$zipfile" -d "$folder"
-
-            echo "Successfully extracted: $filename"
           done
-
-      - name: Show extracted files
-        run: |
-          echo "Extracted repository structure:"
-          find . -maxdepth 4 -type f \
-            ! -path "./.git/*" \
-            ! -name "*.zip" \
-            | sort
 
       - name: Commit extracted files
         run: |
