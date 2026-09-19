@@ -1,0 +1,57 @@
+name: Extract ZIP Files
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "**/*.zip"
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find and extract ZIP files
+        shell: bash
+        run: |
+          set -e
+
+          echo "Searching for ZIP files..."
+
+          find . -type f -iname "*.zip" -print0 | while IFS= read -r -d '' zipfile; do
+            filename=$(basename "$zipfile")
+            folder="${zipfile%.zip}"
+
+            echo "Extracting: $zipfile"
+            echo "Destination: $folder"
+
+            mkdir -p "$folder"
+            unzip -o "$zipfile" -d "$folder"
+
+            echo "Successfully extracted: $filename"
+          done
+
+      - name: Show extracted files
+        run: |
+          echo "Extracted repository structure:"
+          find . -maxdepth 4 -type f \
+            ! -path "./.git/*" \
+            ! -name "*.zip" \
+            | sort
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto extract ZIP files"
+            git push
+          fi
